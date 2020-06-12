@@ -11,24 +11,24 @@ The library provides a thin syntactical abstraction over the excellent [Stylefy]
 The motivation behind **style-plus** is to completely eliminate the need to write and maintain separate style sheets for projects targeting browser environments.
 
 ## Usage
-Add the dependency to your project:
+First, add the dependency to your project:
 ```Clojure
 [paintparty/style-plus "0.3.2"]
 ```
 &nbsp;
 
-Follow the [Setup Instructions](https://github.com/Jarzka/stylefy#setup) for **Stylefy**.
+Then, follow the [Setup Instructions](https://github.com/Jarzka/stylefy#setup) for **Stylefy**.
 
 &nbsp;
 
-Require **style-plus** into the namespace(s) as needed:
+Lastly, require **style-plus** into the namespace(s) as needed:
 ```Clojure
 (:require [style-plus.core :as style-plus :refer [s+]])
 ```
 
 &nbsp;
 
-Now you can style your components w the following features:
+Now, you can style your components w the following features:
 1) The same implicit integer-to-pixel convention that Reagent uses
 2) Garden syntax (Stylefy uses garden under the hood), such as `[[10 20]]`
 3) Media queries and pseudo-classes at a property-level
