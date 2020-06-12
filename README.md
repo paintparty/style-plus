@@ -1,4 +1,4 @@
-<img width=300 src="s+logo.jpg"/>
+<img width=250 src="s+logo.jpg"/>
 
 &nbsp;
 
