@@ -4,7 +4,11 @@
 
 &nbsp;
 
-**style-plus** enables co-location of styles within ClojureScript Reagent components. The library provides a thin syntactical abstraction over the excellent [Stylefy](https://github.com/Jarzka/stylefy) library, as well as some additional css helper functions. The motivation is to completely eliminate the need to write and maintain separate style sheets.
+**style-plus** enables co-location of styles within ClojureScript Reagent components.
+
+The library provides a thin syntactical abstraction over the excellent [Stylefy](https://github.com/Jarzka/stylefy) library, as well as some additional css helper functions.
+
+The motivation behind **style-plus** is to completely eliminate the need to write and maintain separate style sheets for projects targeting browser environments.
 
 ## Usage
 Add the dependency to your project:
