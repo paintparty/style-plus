@@ -1,4 +1,4 @@
-(defproject paintparty/style-plus "0.3.0"
+(defproject paintparty/style-plus "0.3.1"
   :description "Co-locate your style"
   :url "https://github.com/paintparty/style-plus"
   :license {:name "EPL-2.0 OR GPL-2.0-or-later WITH Classpath-exception-2.0"
