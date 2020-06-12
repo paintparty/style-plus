@@ -1,15 +1,13 @@
 (ns style-plus.core
   (:require
-   [clojure.pprint :refer [pprint]]
-   [par.core :refer-macros [!? ? ?c]]
    [stylefy.core :as stylefy :refer [use-style]]))
 
-(defn sample? [m]
-  (or
-   (and (= 1 (count m))
-        (= (keys m) '(:margin-big)))
-   (and (= 1 (count m))
-        (= (keys m) '("nth-child(odd)")))))
+(def int-vals
+  #{:font-weight :order :opacity :flex-grow :flex-shrink :z-index :grid-row :grid-row-start :grid-row-end :grid-column :grid-column-start :grid-column-end :columns :column-count :counter-increment :counter-reset :counter-set })
+
+;:left and :right (used with @page rule) have been removed from this check to avoid clash with standard css props
+(def psuedo-classes #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
+
 
 ;; Breakpoint helpers
 (defn- px [x] (if (number? x) (str x "px") x))
@@ -46,26 +44,8 @@
   {:max-width (css-below-val end-k m)
    :min-width (some-> (get m start-k) normalize-css-value)})
 
-(def int-vals
-  #{:font-weight
-    :order
-    :opacity
-    :flex-grow
-    :flex-shrink
-    :z-index
-    :grid-row
-    :grid-row-start
-    :grid-row-end
-    :grid-column
-    :grid-column-start
-    :grid-column-end
-    :columns
-    :column-count
-    :counter-increment
-    :counter-reset
-    :counter-set
-    })
 
+;; utils fns
 (defn- convert-number
   ([n]
    (convert-number n nil))
@@ -143,8 +123,12 @@
           m))
 
 
-(defn- modes->map [m globals]
+(defn- psuedo-class-key? [k]
+  (contains? psuedo-classes k))
 
+
+;; Pipline fns
+(defn- modes->map [m globals]
   (let [modes-map* (if-let [modes (:s/mode m)]
                      (assoc m :s/mode (reduce (fn [acc m] (deep-merge acc m)) {} modes))
                      m)
@@ -154,20 +138,19 @@
      modes-map-merged))
 
 
-(defn nested-modes [acc [k v]]
+(defn- nested-modes [acc [k v]]
   (assoc acc k (reduce (fn [acc [k v]]
                          (if (map? v)
-                           (do (js/console.log v " is map ")
                              (reduce (fn [acc [key val]]
                                        (assoc-in acc [::stylefy/mode (psuedo-class-keystring key)] {k val}))
                                      acc
-                                     v))
-                           (do (js/console.log v " is not map ")
-                             (assoc acc k v))))
-                       {::stylefy/mode {}} v)))
+                                     v)
+                             (assoc acc k v)))
+                       {::stylefy/mode {}}
+                       v)))
 
 
-(defn int-vals->px-vals
+(defn- int-vals->px-vals
   [m]
   (reduce
    (fn [acc [key val]]
@@ -191,12 +174,7 @@
                                    (reduce nested-modes
                                            {}
                                            (:s/media media-map-merged)))
-                            media-map-merged
-                            )]
-                            ;; (pprint "mmm")
-                            ;; (pprint media-map-merged*)
-                            ;; (pprint media-map-merged)
-                            ;; (pprint with-nested-modes)
+                            media-map-merged)]
      with-nested-modes))
 
 
@@ -231,11 +209,7 @@
    (dissoc :s/media)
    (dissoc :s/mode)))
 
-;:left and :right (used with @page rule) have been removed from this check
-(def psuedo-classes #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
 
-(defn psuedo-class-key? [k]
-  (contains? psuedo-classes k))
 
 (defn- remove-globals [m]
   (reduce (fn [acc [k v]]
@@ -284,9 +258,8 @@
 
 
 
-(defn s+->stylefy [style]
-  (let [sample? (sample? style)
-        valid-keys (valid-keys style)
+(defn- s+->stylefy [style]
+  (let [valid-keys (valid-keys style)
         global-modes (global-modes valid-keys)
         global-mq (global-mq valid-keys)
         globals-removed (remove-globals valid-keys)
@@ -300,18 +273,10 @@
         medias (media->map modes global-mq)
         keyss (stylefy-keys medias)
         styles (remove-nil-and-empty keyss)]
-          ;; (? valid-keys)
-          ;; (? global-mq)
-          ;; (? globals-removed)
-          ;; (? reduced)
-          ;; (? modes)
-          ;; (? medias)
-          ;; (? keyss)
-           (pprint styles)
-
     styles))
 
 
+;; Debugging
 #_(def bp* {:max-width 500
           :min-width :12rem})
 
