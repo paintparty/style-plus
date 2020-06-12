@@ -1,6 +1,5 @@
-<p align="center">
-  <img align="left" width="200" src="s+logo.jpg" alt="">
-</p>
+![logo](s+logo.jpg)
+
 
 # style-plus
 
