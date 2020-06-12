@@ -1,5 +1,4 @@
-![logo](s+logo.jpg)
-
+<img width=200 src="s+logo.jpg"/>
 
 # style-plus
 
