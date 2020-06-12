@@ -6,8 +6,8 @@
   #{:font-weight :order :opacity :flex-grow :flex-shrink :z-index :grid-row :grid-row-start :grid-row-end :grid-column :grid-column-start :grid-column-end :columns :column-count :counter-increment :counter-reset :counter-set })
 
 ;:left and :right (used with @page rule) have been removed from this check to avoid clash with standard css props
-(def psuedo-classes #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
-
+(def psuedo-classes
+  #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
 
 ;; Breakpoint helpers
 (defn- px [x] (if (number? x) (str x "px") x))

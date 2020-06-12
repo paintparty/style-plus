@@ -15,7 +15,7 @@ Follow the [Setup Instructions](https://github.com/Jarzka/stylefy#setup) for **S
 
 &nbsp;
 
-Require style-plus into the namespace(s) as needed:
+Require **style-plus** into the namespace(s) as needed:
 ```Clojure
 (:require [style-plus.core :as style-plus :refer [s+]])
 ```
@@ -27,7 +27,8 @@ Now you can style your components w the following features:
 2) Garden syntax (Stylefy uses garden under the hood), such as `[[10 20]]`
 3) Media queries and pseudo-classes at a property-level
 
-The `s+` function takes a map of styles, and an optional map of html attributes. Media-queries are expressed as maps, while psuedo-classes are expressed as strings:
+The `s+` function takes a map of styles, and an optional map of html attributes. Media-queries are expressed as maps, while psuedo-classes are expressed as strings. A key of `:=` represents the default value.
+
 ```Clojure
 (defn button [label]
   [:div
@@ -48,7 +49,7 @@ The `s+` function takes a map of styles, and an optional map of html attributes.
 
 &nbsp;
 
-With the above example, Stylefy would automatically produce and inject the following selectors into your document, as well attaching the appropriate class names to the element in your component:
+With the above example, **Stylefy** automatically injects the following selectors into your document, as well attaching the appropriate class names to the element in your component:
 ```css
 ._stylefy_1838088000 {
     border: 1px solid blue;
@@ -63,6 +64,59 @@ With the above example, Stylefy would automatically produce and inject the follo
     border: 1px solid red;
 }
 ```
+&nbsp;
+
+## Helpers
+
+**style-plus** ships with a set of helpers for defining css breakpoints.
+
+In the example below, some breakpoints are defined in a dedicated namespace.
+```Clojure
+(ns my-project.breakpoints
+  (:require [style-plus.core :refer [above below between]]))
+
+;; Define some breakpoints
+(def bp
+ {:sm 576
+  :md 768
+  :lg 992
+  :xl 1200})
+
+;; If you are designing for laptop/desktop
+;; (below :sm bp) => {:max-width 575.98px}
+(def sm (below :sm bp))
+(def md (below :md bp))
+(def lg (below :lg bp))
+(def xl (below :xl bp))
+(def md-only (between :sm :md bp))
+(def md-xl (between :md :xl bp))
+
+;; If you are designing for mobile-first
+;; (below :sm bp) => {:min-width 576px}
+; (def sm (above :sm bp))
+; (def md (above :md bp))
+; (def lg (above :lg bp))
+; (def xl (above :xl bp))
+; (def md-only (between :sm :md bp))
+; (def md-xl (between :md :xl bp))
+```
+
+&nbsp;
+
+These breakpoint defs can then be used with **style-plus**.
+```Clojure
+(ns my-project.ui
+  (:require [my-project.breakpoints :refer [sm md lg xl md-only md-xl]]))
+
+(defn header [text]
+  [:h1
+    (s+ {:font-size {:= 18 sm 16 xl 24}})
+    text])
+```
+
+
+
+
 ## License
 
 Copyright © 2020 JC
