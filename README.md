@@ -9,7 +9,7 @@
 ## Usage
 Add the dependency to your project:
 ```Clojure
-[paintparty/style-plus "0.3.0"]
+[paintparty/style-plus "0.3.2"]
 ```
 &nbsp;
 

@@ -156,7 +156,7 @@
    (fn [acc [key val]]
      (assoc acc
             (if (map? key) (int-vals->px-vals key) key)
-            (if (map? val) (int-vals->px-vals val) (convert-number val))))
+            (if (map? val) (int-vals->px-vals val) (convert-number val key))))
    {}
    m))
 
