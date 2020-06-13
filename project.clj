@@ -6,7 +6,4 @@
   :dependencies [[org.clojure/clojure "1.10.1"]
                  [stylefy "2.2.0"]]
   :repl-options {:init-ns style-plus.core}
-  :deploy-repositories [["releases" {:sign-releases false
-                                     :url "https://repo.clojars.org"}]
-                        ["snapshots" {:sign-releases false
-                                      :url "https://repo.clojars.org"}]])
+  :deploy-repositories [["releases"  {:sign-releases false :url "https://repo.clojars.org"}]])
