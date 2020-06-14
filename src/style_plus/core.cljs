@@ -64,6 +64,18 @@
   (reduce (fn [acc [k v]]
             (assoc acc k (if (number? v) (convert-number v) v))) {} m))
 
+(defn convert-vector [v]
+  (mapv #(cond
+           (vector? %)
+           (convert-vector %)
+           (number? %)
+           (convert-number %)
+           (keyword? %)
+           (name %)
+           :else %)
+        v))
+
+
 (defn- sp-conversion [v k]
   (cond
     (map? v)
@@ -84,16 +96,7 @@
             v)
 
     (vector? v)
-    (when (and (= (count v) 1)
-               (vector? (first v))
-               (not (empty? (first v))))
-      [(mapv #(cond
-                (number? %)
-                (convert-number %)
-                (keyword? %)
-                (name %)
-                :else %)
-             (first v))])
+    (convert-vector v)
 
     (number? v)
     (convert-number v k)
