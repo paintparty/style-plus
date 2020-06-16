@@ -1,13 +1,14 @@
 (ns style-plus.core
   (:require
+   [clojure.string :as string]
+   [style-plus.shorthand :as shorthand]
    [stylefy.core :as stylefy :refer [use-style]]))
 
 (def int-vals
   #{:font-weight :order :opacity :flex-grow :flex-shrink :z-index :grid-row :grid-row-start :grid-row-end :grid-column :grid-column-start :grid-column-end :columns :column-count :counter-increment :counter-reset :counter-set })
 
 ;:left and :right (used with @page rule) have been removed from this check to avoid clash with standard css props
-(def psuedo-classes
-  #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
+(def psuedo-classes #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
 
 ;; Breakpoint helpers
 (defn- px [x] (if (number? x) (str x "px") x))
@@ -75,6 +76,18 @@
            :else %)
         v))
 
+(defn vector->string [v inner?]
+  (string/join (if inner? " " ", ")
+               (mapv #(cond
+                        (vector? %)
+                        (vector->string % true)
+                        (number? %)
+                        (convert-number %)
+                        (keyword? %)
+                        (name %)
+                        :else %)
+                     v)))
+
 
 (defn- sp-conversion [v k]
   (cond
@@ -96,7 +109,7 @@
             v)
 
     (vector? v)
-    (convert-vector v)
+    (vector->string v false)
 
     (number? v)
     (convert-number v k)
@@ -260,14 +273,16 @@
 
 
 
-
 (defn- s+->stylefy [style]
   (let [valid-keys (valid-keys style)
         global-modes (global-modes valid-keys)
         global-mq (global-mq valid-keys)
         globals-removed (remove-globals valid-keys)
         reduced (reduce (fn [acc [k v]]
-                          (assoc acc k (sp-conversion v k)))
+                          (let [resolved-css-prop (shorthand/key-sh k)
+                                resolved-css-val (shorthand/val-sh v k)
+                                converted-val (sp-conversion resolved-css-val resolved-css-prop)]
+                            (assoc acc resolved-css-prop converted-val)))
                         {}
                         globals-removed)
         extracted (extract-modes reduced)
@@ -278,10 +293,18 @@
         styles (remove-nil-and-empty keyss)]
     styles))
 
-
 ;; Debugging
 #_(def bp* {:max-width 500
           :min-width :12rem})
+
+#_(js/console.clear)
+
+#_(pprint
+ (s+->stylefy {:h :100*}))
+
+#_(s+->stylefy
+  {:text-shadow [[10 10 :blue] [10 10 :red]]}
+  #_{:flex [[1 1 :auto]]})
 
 #_(s+->stylefy
   {bp* {"hover" {:font-size 40}
@@ -298,3 +321,8 @@
    (use-style
     (s+->stylefy style)
     attr)))
+
+(defn !imp [v]
+  (if-not (or (map? v) (vector? v))
+    (str v "!important")
+    v))
