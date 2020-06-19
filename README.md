@@ -13,7 +13,7 @@ The motivation behind **style-plus** is to completely eliminate the need to writ
 ## Usage
 First, add the dependency to your project:
 ```Clojure
-[paintparty/style-plus "0.3.3-SNAPSHOT"]
+[paintparty/style-plus "0.4.0-SNAPSHOT"]
 ```
 &nbsp;
 
