@@ -28,20 +28,26 @@
             :else v*)]
     v))
 
-(defn above [kw m]
+(defn above
+  "Get the min-width breakpoint media-query"
+  [kw m]
   {:min-width (some-> (get m kw) normalize-css-value)})
 
-(defn css-below-val [kw m]
+(defn- css-below-val [kw m]
   (when-let [v (some-> (get m kw) normalize-css-value)
              ]
     (let [unit (if (re-find #"em$" v) "em" "px")
           amount (if (= unit "em") 0.00125 0.02)]
       (str "calc(" v " - " amount unit ")"))))
 
-(defn below [kw m]
+(defn below
+  "Get the max-width breakpoint media-query"
+  [kw m]
   {:max-width (css-below-val kw m)})
 
-(defn between [start-k end-k m]
+(defn between
+  "Get the max-width / min-width media-query"
+  [start-k end-k m]
   {:max-width (css-below-val end-k m)
    :min-width (some-> (get m start-k) normalize-css-value)})
 
@@ -326,3 +332,11 @@
   (if-not (or (map? v) (vector? v))
     (str v "!important")
     v))
+
+(defn ns+
+  "Creates a string that represents a fully namespaced-qualified
+   identifier for an element within a component rendering function.
+   Includes line number of parent function."
+  [x s]
+  (let [{ns* :ns name* :name line* :line column* :column} (meta x)]
+    (str ns* "/" name* "::" (name s) ":" line*)))
