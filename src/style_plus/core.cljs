@@ -1,8 +1,10 @@
 (ns style-plus.core
   (:require
    [clojure.string :as string]
+   [clojure.walk :as walk]
    [style-plus.shorthand :as shorthand]
    [stylefy.core :as stylefy :refer [use-style]]))
+
 
 (def int-vals
   #{:font-weight :order :opacity :flex-grow :flex-shrink :z-index :grid-row :grid-row-start :grid-row-end :grid-column :grid-column-start :grid-column-end :columns :column-count :counter-increment :counter-reset :counter-set })
@@ -161,15 +163,23 @@
 
 
 (defn- nested-modes [acc [k v]]
-  (assoc acc k (reduce (fn [acc [k v]]
-                         (if (map? v)
-                             (reduce (fn [acc [key val]]
-                                       (assoc-in acc [::stylefy/mode (psuedo-class-keystring key)] {k val}))
-                                     acc
-                                     v)
-                             (assoc acc k v)))
-                       {::stylefy/mode {}}
-                       v)))
+  (assoc
+   acc
+   k
+   (reduce
+    (fn [acc [k v]]
+      (if (map? v)
+        (reduce
+         (fn [acc [key val]]
+           (assoc-in
+            acc
+            [::stylefy/mode (psuedo-class-keystring key)]
+            {k val}))
+         acc
+         v)
+        (assoc acc k v)))
+    {::stylefy/mode {}}
+    v)))
 
 
 (defn- int-vals->px-vals
@@ -177,8 +187,12 @@
   (reduce
    (fn [acc [key val]]
      (assoc acc
-            (if (map? key) (int-vals->px-vals key) key)
-            (if (map? val) (int-vals->px-vals val) (convert-number val key))))
+            (if (map? key)
+              (int-vals->px-vals key)
+              key)
+            (if (map? val)
+              (int-vals->px-vals val)
+              (convert-number val key))))
    {}
    m))
 
@@ -278,19 +292,23 @@
           m))
 
 
+(defn- styles-reduced [m]
+  (reduce
+   (fn [acc [k v]]
+     (let [resolved-css-prop (shorthand/key-sh k)
+           resolved-css-val (shorthand/val-sh v k)
+           converted-val (sp-conversion resolved-css-val resolved-css-prop)]
+       (assoc acc resolved-css-prop converted-val)))
+   {}
+   m))
+
 
 (defn- s+->stylefy [style]
   (let [valid-keys (valid-keys style)
         global-modes (global-modes valid-keys)
         global-mq (global-mq valid-keys)
         globals-removed (remove-globals valid-keys)
-        reduced (reduce (fn [acc [k v]]
-                          (let [resolved-css-prop (shorthand/key-sh k)
-                                resolved-css-val (shorthand/val-sh v k)
-                                converted-val (sp-conversion resolved-css-val resolved-css-prop)]
-                            (assoc acc resolved-css-prop converted-val)))
-                        {}
-                        globals-removed)
+        reduced (styles-reduced globals-removed)
         extracted (extract-modes reduced)
         no-empties (remove-empties extracted)
         modes (modes->map no-empties global-modes)
@@ -298,6 +316,121 @@
         keyss (stylefy-keys medias)
         styles (remove-nil-and-empty keyss)]
     styles))
+
+
+(defn ns+
+  "Creates a string that represents a fully namespaced-qualified
+   identifier for an element within a component rendering function.
+   Includes line number of parent function.
+
+   Intended to be called with a Var-quoted name of the enclosing
+   function, as well as an optional keyword. The keyword is a user-defined,
+   symantic name (similar to a classname) associated with html element within
+   the function.
+
+   The resulting string is intended to be used as the value of a custom-data
+   attribute, in order to help quickly identify the specific element when
+   inspecting output in an environment such as Chrome DevTools.
+   This is helpful when using a library such as Stylefy, which elides the
+   the need for using classnames, which traditionally double as both css
+   selectors and unique identifiers.
+
+   It can be optionally called with just the var-quoted function name.
+
+   Example:
+
+    (defn my-button [label]
+      [:div
+      (s+ {:cursor :pointer
+           :text-align :center
+           :border [[1 :solid :blue]}
+          {:role :button
+           :on-click #()
+           :data-ns (ns+ #'my-button :outer)})
+        [:span
+         (s+ {:background :yellow}
+             {:data-ns (ns+ #'my-button :inner})
+         label]])"
+
+  ([x]
+   (when (= cljs.core/Var (type x))
+     (ns+ x nil)))
+  ([var-quoted-fn el-ident]
+   (let [{ns* :ns name* :name line* :line} (meta var-quoted-fn)
+         namespace* (when ns* (str ns* "/"))
+         fn-name (when name* (str name*))
+         el-ident-str (when el-ident (str (when fn-name "::") (name el-ident)))
+         line-number (when line* (str ":" line*))]
+     (str namespace* fn-name el-ident-str line-number))))
+
+
+(defn data-ns-map [style]
+  (when-let [m (meta style)]
+    (when-let [[k v] (first m)]
+      {:data-ns (if (true? v)
+                  (ns+ k)
+                  (ns+ k v))})))
+
+(defn s+
+  ([style]
+   (s+ style nil))
+  ([style attr]
+   (use-style
+    (s+->stylefy style)
+    (merge (data-ns-map style) attr))))
+
+(defn !imp
+  "Appends \"!important\" to a css style value.
+   Expects a string or keyword."
+  [v]
+  (if-not (or (map? v) (vector? v))
+    (str v "!important")
+    v))
+
+
+(defn calc [args]
+  (when-let [converted
+             (when (seq? args)
+               (clojure.walk/walk
+                (fn [v]
+                  (cond
+                    (seq? v)
+                    (calc v)
+                    (keyword? v)
+                    (name v)
+                    (number? v) (str v "px")
+                    :else v))
+                (fn [v] (str "(" (string/join " " v) ")"))
+                args))]
+    (str "calc" converted)))
+
+
+(defn- v->str [v]
+  (cond
+    (or (symbol? v) (string? v) (keyword? v))
+    (name v)
+    (number? v)
+    (str v "px")
+    :else (when (vector? v)
+            (string/join " " (map v->str v)))))
+
+
+(defn linear-gradient
+  [direction & stops]
+  (let [direction (when direction
+                    (str
+                     (if (number? direction)
+                       (str (.parseFloat direction) "deg")
+                       (when (or (string? direction)
+                                 (keyword? direction))
+                         (string/replace (name direction) #"-" " ")))
+                     ", "))]
+    (str
+     "linear-gradient("
+     direction
+     (string/join ", " (map v->str stops))
+     ")")))
+
 
 ;; Debugging
 #_(def bp* {:max-width 500
@@ -319,24 +452,3 @@
 #_(s+->stylefy
   {:font-size {bp* {"hover" 20
                     "first-child" 40}}})
-
-(defn s+
-  ([style]
-   (s+ style nil))
-  ([style attr]
-   (use-style
-    (s+->stylefy style)
-    attr)))
-
-(defn !imp [v]
-  (if-not (or (map? v) (vector? v))
-    (str v "!important")
-    v))
-
-(defn ns+
-  "Creates a string that represents a fully namespaced-qualified
-   identifier for an element within a component rendering function.
-   Includes line number of parent function."
-  [x s]
-  (let [{ns* :ns name* :name line* :line column* :column} (meta x)]
-    (str ns* "/" name* "::" (name s) ":" line*)))

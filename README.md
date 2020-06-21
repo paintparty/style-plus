@@ -13,7 +13,7 @@ The motivation behind **style-plus** is to completely eliminate the need to writ
 ## Usage
 First, add the dependency to your project:
 ```Clojure
-[paintparty/style-plus "0.4.0-SNAPSHOT"]
+[paintparty/style-plus "0.5.0-SNAPSHOT"]
 ```
 &nbsp;
 
@@ -29,9 +29,12 @@ Lastly, require **style-plus** into the namespace(s) as needed:
 &nbsp;
 
 Now, you can style your components w the following features:
-1) The same implicit integer-to-pixel convention that Reagent uses
-2) Garden syntax (Stylefy uses garden under the hood), such as `[[10 20]]`
-3) Media queries and pseudo-classes at a property-level
+1) Media queries and pseudo-classes at a property-level
+2) The same implicit integer-to-pixel convention that Reagent uses
+3) Garden syntax (Stylefy uses garden under the hood), such as `[[10 20]]`
+4) Optionally attach a ns-qualifed custom data attribute.
+
+&nbsp;
 
 The `s+` function takes a map of styles, and an optional map of html attributes. Media-queries are expressed as maps, while psuedo-classes are expressed as strings. A key of `:=` represents the default value.
 
@@ -70,13 +73,16 @@ With the above example, **Stylefy** automatically injects the following selector
     border: 1px solid red;
 }
 ```
+
+&nbsp;
+
 &nbsp;
 
 ## Helpers
 
-**style-plus** ships with a set of helpers for defining css breakpoints.
+**style-plus** ships with 3 helper functions for defining css breakpoints.
 
-In the example below, some breakpoints are defined in a dedicated namespace.
+In the example below, a number of global breakpoints are defined in a dedicated namespace.
 ```Clojure
 (ns my-project.breakpoints
   (:require [style-plus.core :refer [above below between]]))
@@ -112,14 +118,77 @@ In the example below, some breakpoints are defined in a dedicated namespace.
 These breakpoint defs can then be used with **style-plus**.
 ```Clojure
 (ns my-project.ui
-  (:require [my-project.breakpoints :refer [sm md lg xl md-only md-xl]]))
+  (:require [my-project.breakpoints :refer [sm lg]]))
 
 (defn header [text]
   [:h1
-    (s+ {:font-size {:= 18 sm 16 xl 24}})
+    (s+ {:font-size {:= 18 sm 16 lg 24}})
     text])
 ```
 
+&nbsp;
+
+&nbsp;
+
+## Using Metadata
+
+Co-locating your style inside components obviates the need to use class names and css selectors. The html generated in the DOM will have many auto generated class names (like the ones above), and possibly some utility classes, if you are using an atomic css library. As a result, it can become difficult to quickly comprehend the source location when inspecting elements in a browser inspector (such as Chrome DevTool Elements panel).
+
+With `s+`, you can add metadata to the style-map (first arg), which will then be transformed into a unique value and attached to the element as a custom data attribute called `data-ns`. This metadata should be a map with single entry. The key is the var-quoted function name and the value is a user-defined keyword (which should have some kind of symantic relationship to the actual element).
+
+```Clojure
+(defn my-button [label]
+  [:div
+   (s+
+    ^{#'my-button :outer}
+    {:cursor :pointer
+     :text-align :center
+     :border [[1 :solid :blue]}
+    {:role :button
+     :on-click #()})
+    [:span
+      (s+
+       ^{#'my-button :inner}
+       {:background :yellow})
+      label]])
+```
+In the resulting html the namespace, function, element-name, and source line number are clearly evident:
+```Html
+<div class="_stylefy_-545329968"
+     data-ns="my-project.ui/my-button::outer:619"
+     role="button" >
+  <div data-ns="my-project.ui/my-button::inner:619"
+       class="_stylefy_457554977">Go</div>
+</div>
+```
+
+
+If want to attach the identifying custom-data attribute manually, or use a different key than the default `:data-ns`(`:data-foo` is used in the example below), you can make use of `style-plus/ns+`:
+```Clojure
+;; Require it into your namespace
+(ns my-project.ui
+  (:require [style-plus.core :refer [s+ ns+]]))
+
+
+;; Use ns+ in the html attributes map
+(defn my-button [label]
+  [:div
+  (s+ {:cursor :pointer
+       :text-align :center
+       :border [[1 :solid :blue]}
+      {:role :button
+       :on-click #()
+       :data-foo (ns+ #'my-button :outer)})
+    [:span
+      (s+ {:background :yellow}
+          {:data-foo (ns+ #'my-button :inner})
+      label]])
+```
+The second keyword argument to `ns+` is optional. You can also call it like this:
+```Clojure
+(ns+ #'my-button)
+;; => "my-project.ui/my-button:619"
+```
 
 
 

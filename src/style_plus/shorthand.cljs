@@ -74,6 +74,7 @@
                :se :space-evenly
                :s :stretch}}
 
+   :lh {:name :line-height}
    :m {:name :margin}
    :mr {:name :margin-right}
    :ml {:name :margin-left}
