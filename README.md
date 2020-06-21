@@ -141,6 +141,10 @@ Co-locating your style inside components obviates the need to use class names an
 With `s+`, you can add metadata to the style-map (first arg), which will then be transformed into a unique value and attached to the element as a custom data attribute called `data-ns`. This metadata should be a map with single entry. The key is the var-quoted function name and the value is a user-defined keyword (which should have some kind of symantic relationship to the actual element).
 
 ```Clojure
+(ns my-project.ui
+  (:require [style-plus.core :refer [s+]]))
+
+
 (defn my-button [label]
   (let [f #'my-button]
     [:div
@@ -155,7 +159,7 @@ With `s+`, you can add metadata to the style-map (first arg), which will then be
           {:background :yellow})
       label]])
 ```
-In the resulting html the namespace, function, element-name, and source line number are clearly evident:
+In resulting html (from a call such as `[my-button "Go"]`) the namespace, function, element-name, and source line number are clearly evident:
 ```Html
 <div class="_stylefy_-545329968"
      data-ns="my-project.ui/my-button::outer:619"
