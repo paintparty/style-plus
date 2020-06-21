@@ -4,11 +4,15 @@
 
 &nbsp;
 
-**style-plus** enables co-location of styles within ClojureScript Reagent components.
+# Locate your styles.
+
+**Style-plus** enables co-location of styles within ClojureScript Reagent components.
 
 The library provides a thin syntactical abstraction over the excellent [Stylefy](https://github.com/Jarzka/stylefy) library, as well as some additional css helper functions.
 
 The motivation behind **style-plus** is to completely eliminate the need to write and maintain separate style sheets for projects targeting browser environments.
+
+&nbsp;
 
 ## Usage
 First, add the dependency to your project:
@@ -132,24 +136,23 @@ These breakpoint defs can then be used with **style-plus**.
 
 ## Using Metadata
 
-Co-locating your style inside components obviates the need to use class names and css selectors. The html generated in the DOM will have many auto generated class names (like the ones above), and possibly some utility classes, if you are using an atomic css library. As a result, it can become difficult to quickly comprehend the source location when inspecting elements in a browser inspector (such as Chrome DevTool Elements panel).
+Co-locating your style inside components obviates the need to use class names and css selectors. The html generated in the DOM will have many auto-generated class names (like the ones above), and possibly some utility classes, if you are using an atomic css library. As a result, it can become difficult to quickly comprehend the source location when looking at elements in a browser inspector (such as Chrome DevTool Elements panel).
 
 With `s+`, you can add metadata to the style-map (first arg), which will then be transformed into a unique value and attached to the element as a custom data attribute called `data-ns`. This metadata should be a map with single entry. The key is the var-quoted function name and the value is a user-defined keyword (which should have some kind of symantic relationship to the actual element).
 
 ```Clojure
 (defn my-button [label]
-  [:div
-   (s+
-    ^{#'my-button :outer}
-    {:cursor :pointer
-     :text-align :center
-     :border [[1 :solid :blue]}
-    {:role :button
-     :on-click #()})
-    [:span
-      (s+
-       ^{#'my-button :inner}
-       {:background :yellow})
+  (let [f #'my-button]
+    [:div
+     (s+ ^{#'f :outer}
+         {:cursor :pointer
+          :text-align :center
+          :border [[1 :solid :blue]]}
+         {:role :button
+          :on-click #()})
+     [:span
+      (s+ ^{#'f :inner}
+          {:background :yellow})
       label]])
 ```
 In the resulting html the namespace, function, element-name, and source line number are clearly evident:
