@@ -1,8 +1,8 @@
-(ns style-plus.core
-  (:require
-   [clojure.string :as string]
+(ns style-plus.core (:require [clojure.string :as string]
    [clojure.walk :as walk]
    [style-plus.shorthand :as shorthand]
+   [closet-essentials.atomic :as atomic]
+   [garden.core]
    [stylefy.core :as stylefy :refer [use-style]]))
 
 
@@ -11,48 +11,6 @@
 
 ;:left and :right (used with @page rule) have been removed from this check to avoid clash with standard css props
 (def psuedo-classes #{:active :any-link :blank :checked :current :default :defined :disabled :drop :empty :enabled :first :first-child :first-of-type :fullscreen :future :focus :focus-visible :focus-within :host :hover :indeterminate :in-range :invalid :last-child :last-of-type :link :local-link :only-child :only-of-type :optional :out-of-range :past :placeholder-shown :read-only :read-write :required :root :scope :target :target-within :user-invalid :valid :visited})
-
-;; Breakpoint helpers
-(defn- px [x] (if (number? x) (str x "px") x))
-
-(defn- number-string? [v]
-  (and (string? v) (not (re-find #"[^0-9.]" v))))
-
-(defn- normalize-css-value [css-val]
-  (let [v* (if (keyword? css-val) (name css-val) css-val)
-        v (cond
-            (number? v*)
-            (px v*)
-
-            (number-string? v*)
-            (str v* "px")
-
-            :else v*)]
-    v))
-
-(defn above
-  "Get the min-width breakpoint media-query"
-  [kw m]
-  {:min-width (some-> (get m kw) normalize-css-value)})
-
-(defn- css-below-val [kw m]
-  (when-let [v (some-> (get m kw) normalize-css-value)
-             ]
-    (let [unit (if (re-find #"em$" v) "em" "px")
-          amount (if (= unit "em") 0.00125 0.02)]
-      (str "calc(" v " - " amount unit ")"))))
-
-(defn below
-  "Get the max-width breakpoint media-query"
-  [kw m]
-  {:max-width (css-below-val kw m)})
-
-(defn between
-  "Get the max-width / min-width media-query"
-  [start-k end-k m]
-  {:max-width (css-below-val end-k m)
-   :min-width (some-> (get m start-k) normalize-css-value)})
-
 
 ;; utils fns
 (defn- convert-number
@@ -105,7 +63,7 @@
                 (mq-key? key)
                 (assoc-in acc
                           [:media (convert-mq-vals key)]
-                          {k (get v key)})
+                          {k (sp-conversion (get v key) k)})
 
                 (= key :=)
                 (assoc acc key (sp-conversion val k))
@@ -146,9 +104,25 @@
           {}
           m))
 
-
 (defn- psuedo-class-key? [k]
   (contains? psuedo-classes k))
+
+
+(defn- resolve-css-val [v k]
+  (if (map? v)
+    (reduce (fn [acc [map-key v]] (assoc acc map-key (shorthand/val-sh v k))) {} v)
+    (shorthand/val-sh v k)))
+
+
+(defn- styles-reduced [m]
+  (reduce
+   (fn [acc [k v]]
+     (let [resolved-css-prop (shorthand/key-sh k)
+           resolved-css-val (resolve-css-val v k)
+           converted-val (sp-conversion resolved-css-val resolved-css-prop)]
+       (assoc acc resolved-css-prop converted-val)))
+   {}
+   m))
 
 
 ;; Pipline fns
@@ -157,8 +131,11 @@
                      (assoc m :s/mode (reduce (fn [acc m] (deep-merge acc m)) {} modes))
                      m)
         modes-map (assoc modes-map* :s/mode (keystrings (:s/mode modes-map*)))
-        globals-map (keystrings globals)
+        globals-map (->> globals
+                         keystrings
+                         (reduce (fn [acc [k v]] (assoc acc k (styles-reduced v))) {}))
         modes-map-merged (deep-merge {:s/mode globals-map} modes-map)]
+
      modes-map-merged))
 
 
@@ -197,12 +174,14 @@
    m))
 
 
-(defn- media->map [m globals]
+(defn- media->map
+  [m globals]
   (let [media-map* (if-let [media (:s/media m)]
                      (let [a (reduce (fn [acc m] (deep-merge acc m)) {} media)]
                        (assoc m :s/media (or a {})))
                      m)
-        media-map-merged* (deep-merge {:s/media globals} media-map*)
+        globals-hydrated (reduce (fn [acc [k v]] (assoc acc k (styles-reduced v))) {} globals)
+        media-map-merged* (deep-merge {:s/media globals-hydrated} media-map*)
         media-map-merged (int-vals->px-vals media-map-merged*)
         with-nested-modes (if (:s/media m)
                             (assoc media-map-merged
@@ -211,7 +190,7 @@
                                            {}
                                            (:s/media media-map-merged)))
                             media-map-merged)]
-     with-nested-modes))
+    with-nested-modes))
 
 
 (defn- extract-modes [m]
@@ -281,6 +260,7 @@
           {}
           m))
 
+
 (defn- remove-nil-and-empty [m]
   (reduce (fn [acc [k v]]
             (if (not (nil? v))
@@ -290,17 +270,6 @@
               acc))
           {}
           m))
-
-
-(defn- styles-reduced [m]
-  (reduce
-   (fn [acc [k v]]
-     (let [resolved-css-prop (shorthand/key-sh k)
-           resolved-css-val (shorthand/val-sh v k)
-           converted-val (sp-conversion resolved-css-val resolved-css-prop)]
-       (assoc acc resolved-css-prop converted-val)))
-   {}
-   m))
 
 
 (defn- s+->stylefy [style]
@@ -370,6 +339,18 @@
       {:data-ns (if (true? v)
                   (ns+ k)
                   (ns+ k v))})))
+#_(defn s+*
+  ([x]
+   (if (map? x)
+     (s+ nil x nil)
+     (when (vector? x) )))
+  ([x y]
+   (when (= attr {:data-stylitics :showcase-nav})
+     (s+->stylefy style))
+   (use-style
+    (s+->stylefy style)
+    (merge (data-ns-map style) attr)))
+  ([x y z]))
 
 (defn s+
   ([style]
@@ -387,23 +368,12 @@
     (str v "!important")
     v))
 
+(defn cssfn [k & args]
+  (str (name k) "(" (string/join ", " (map #(if (keyword? %) (name %) (str %)) args)) ")"))
 
-(defn calc [args]
-  (when-let [converted
-             (when (seq? args)
-               (clojure.walk/walk
-                (fn [v]
-                  (cond
-                    (seq? v)
-                    (calc v)
-                    (keyword? v)
-                    (name v)
-                    (number? v) (str v "px")
-                    :else v))
-                (fn [v] (str "(" (string/join " " v) ")"))
-                args))]
-    (str "calc" converted)))
 
+(defn atomic [& ks]
+  (reduce (fn [acc k] (merge (k atomic/atomic) acc)) {} ks))
 
 (defn- v->str [v]
   (cond
@@ -416,11 +386,24 @@
 
 
 (defn linear-gradient
+  "Can be used with :background or :background-image css prop.
+   direction arg must be one of the following three types of keywords:
+   :to-bottom-right
+   :77deg
+   :0.5turn
+
+   Examples:
+   (linear-gradient :to-right [:blue :10%] [:red :60%] [:teal :80%])
+   (linear-gradient :95deg :blue :red :teal)
+   (linear-gradient :0.33turn :blue :10% :teal)
+
+   More info here:
+   https://developer.mozilla.org/en-US/docs/Web/CSS/linear-gradient"
   [direction & stops]
   (let [direction (when direction
                     (str
                      (if (number? direction)
-                       (str (.parseFloat direction) "deg")
+                       (str (js/parseFloat direction) "deg")
                        (when (or (string? direction)
                                  (keyword? direction))
                          (string/replace (name direction) #"-" " ")))
