@@ -1,7 +1,7 @@
 (ns style-plus.core (:require [clojure.string :as string]
    [clojure.walk :as walk]
    [style-plus.shorthand :as shorthand]
-   [style-plus.atomic :refer [[atomic-map]]]
+   [style-plus.atomic :refer [atomic-map]]
    [garden.core]
    [stylefy.core :as stylefy :refer [use-style]]))
 
