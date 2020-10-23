@@ -56,31 +56,39 @@
         {:t :top :r :right :b :bottom :l :left}))
     (range 0 (+ max step) step))))
 
-(defonce atomic
+(defonce atomic-map
  (merge
   shorthand-enum-map
   (flex-atomic :row)
   (flex-atomic :column)
   (scale {:k :opacity :sh-k :o :max 100 :step 5 :unit :%})
+  {:p-0 {:padding 0}}
   (margin-padding :padding 30 1)
+  {:m-0 {:margin 0}}
   (margin-padding :margin 30 1)
   (scale {:k :top :sh-k :top :max 100 :step 5 :unit :%})
   (scale {:k :top :sh-k :top :max 30 :step 1 :unit :px})
+  {:top-0 {:top 0}}
   (scale {:k :right :sh-k :right :max 100 :step 5 :unit :%})
   (scale {:k :right :sh-k :right :max 30 :step 1 :unit :px})
+  {:right-0 {:right 0}}
   (scale {:k :bottom :sh-k :bottom :max 100 :step 5 :unit :%})
   (scale {:k :bottom :sh-k :bottom :max 30 :step 1 :unit :px})
+  {:bottom-0 {:bottom 0}}
   (scale {:k :left :sh-k :left :max 100 :step 5 :unit :%})
   (scale {:k :left :sh-k :left :max 30 :step 1 :unit :px})
+  {:left-0 {:left 0}}
   (scale {:k :width :sh-k :w :max 100 :step 5 :unit :%})
+  {:width-0 {:width 0}}
   (scale {:k :height :sh-k :h :max 100 :step 5 :unit :%})
+  {:height-0 {:height 0}}
   (scale {:k :font-size :max 48 :step 1 :unit :px})
   (scale {:k :line-height :sh-k :lh :max 48 :step 1 :unit :px})
   (scale {:k :letter-spacing :max 30 :step 1 :unit :ex :val-fn #(/ % 100)})
   (scale {:k :border-radius :sh-k :radius :max 30 :step 1 :unit :px})
-  {:radius-50% :50%}
-  {:radius-100% :100%}
-  {:radius-pill "9999px"}
+  {:radius-50% {:border-radius :50%}}
+  {:radius-100% {:border-radius :100%}}
+  {:radius-pill {:border-radius "9999px"}}
   {:100 {:font-weight 100}
    :200 {:font-weight 200}
    :300 {:font-weight 300}
@@ -137,6 +145,12 @@
    :bgc-gray {:background-color :gray}
    :bgc-grey {:background-color :grey}
    :bgc-black {:background-color :black}
+   .b-white {:border 1 :solid :white}
+   .b-whitesmoke {:border 1 :solid :whitesmoke }
+   .b-silver {:border 1 :solid :silver}
+   .b-gray {:border 1 :solid :gray}
+   .b-grey {:border 1 :solid :grey}
+   .b-black {:border 1 :solid :black}
    :blur-1px {:filter "blur(1px)"}
    :blur-2px {:filter "blur(2px)"}
    :blur-3px {:filter "blur(3px)"}

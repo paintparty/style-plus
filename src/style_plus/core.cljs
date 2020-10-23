@@ -1,7 +1,7 @@
 (ns style-plus.core (:require [clojure.string :as string]
    [clojure.walk :as walk]
    [style-plus.shorthand :as shorthand]
-   [closet-essentials.atomic :as atomic]
+   [style-plus.atomic :refer [[atomic-map]]]
    [garden.core]
    [stylefy.core :as stylefy :refer [use-style]]))
 
@@ -373,7 +373,7 @@
 
 
 (defn atomic [& ks]
-  (reduce (fn [acc k] (merge (k atomic/atomic) acc)) {} ks))
+  (reduce (fn [acc k] (merge (k atomic-map) acc)) {} ks))
 
 (defn- v->str [v]
   (cond
