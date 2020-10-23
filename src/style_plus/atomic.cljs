@@ -145,12 +145,12 @@
    :bgc-gray {:background-color :gray}
    :bgc-grey {:background-color :grey}
    :bgc-black {:background-color :black}
-   .b-white {:border 1 :solid :white}
-   .b-whitesmoke {:border 1 :solid :whitesmoke }
-   .b-silver {:border 1 :solid :silver}
-   .b-gray {:border 1 :solid :gray}
-   .b-grey {:border 1 :solid :grey}
-   .b-black {:border 1 :solid :black}
+   :b-white {:border [[1 :solid :white]]}
+   :b-whitesmoke {:border [[1 :solid :whitesmoke]]}
+   :b-silver {:border [[1 :solid :silver]]}
+   :b-gray {:border [[1 :solid :gray]]}
+   :b-grey {:border [[1 :solid :grey]]}
+   :b-black {:border [[1 :solid :black]]}
    :blur-1px {:filter "blur(1px)"}
    :blur-2px {:filter "blur(2px)"}
    :blur-3px {:filter "blur(3px)"}
