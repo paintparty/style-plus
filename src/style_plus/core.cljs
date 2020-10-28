@@ -1,8 +1,8 @@
-(ns style-plus.core (:require [clojure.string :as string]
-   [clojure.walk :as walk]
+(ns style-plus.core
+  (:require
+   [clojure.string :as string]
    [style-plus.shorthand :as shorthand]
    [style-plus.atomic :refer [atomic-map]]
-   [garden.core]
    [stylefy.core :as stylefy :refer [use-style]]))
 
 
@@ -57,6 +57,9 @@
 
 (defn- sp-conversion [v k]
   (cond
+    (= k 'manual)
+    v
+
     (map? v)
     (reduce (fn [acc [key val]]
               (cond
@@ -109,8 +112,10 @@
 
 
 (defn- resolve-css-val [v k]
-  (if (map? v)
+  (cond
+    (map? v)
     (reduce (fn [acc [map-key v]] (assoc acc map-key (shorthand/val-sh v k))) {} v)
+    :else
     (shorthand/val-sh v k)))
 
 
@@ -126,17 +131,12 @@
 
 
 ;; Pipline fns
-(defn- modes->map [m globals]
+(defn- modes->map [m]
   (let [modes-map* (if-let [modes (:s/mode m)]
                      (assoc m :s/mode (reduce (fn [acc m] (deep-merge acc m)) {} modes))
                      m)
-        modes-map (assoc modes-map* :s/mode (keystrings (:s/mode modes-map*)))
-        globals-map (->> globals
-                         keystrings
-                         (reduce (fn [acc [k v]] (assoc acc k (styles-reduced v))) {}))
-        modes-map-merged (deep-merge {:s/mode globals-map} modes-map)]
-
-     modes-map-merged))
+        modes-map (assoc modes-map* :s/mode (keystrings (:s/mode modes-map*))) ]
+    modes-map))
 
 
 (defn- nested-modes [acc [k v]]
@@ -175,14 +175,12 @@
 
 
 (defn- media->map
-  [m globals]
+  [m]
   (let [media-map* (if-let [media (:s/media m)]
                      (let [a (reduce (fn [acc m] (deep-merge acc m)) {} media)]
                        (assoc m :s/media (or a {})))
                      m)
-        globals-hydrated (reduce (fn [acc [k v]] (assoc acc k (styles-reduced v))) {} globals)
-        media-map-merged* (deep-merge {:s/media globals-hydrated} media-map*)
-        media-map-merged (int-vals->px-vals media-map-merged*)
+        media-map-merged (int-vals->px-vals media-map*)
         with-nested-modes (if (:s/media m)
                             (assoc media-map-merged
                                    :s/media
@@ -221,40 +219,15 @@
   (-> m
    (assoc ::stylefy/media (:s/media m))
    (assoc ::stylefy/mode (:s/mode m))
+   (assoc ::stylefy/manual (get m 'manual))
+   (dissoc 'manual)
    (dissoc :s/media)
    (dissoc :s/mode)))
 
 
-
-(defn- remove-globals [m]
-  (reduce (fn [acc [k v]]
-            (if (or (string? k) (map? k) (psuedo-class-key? k))
-              (dissoc acc k)
-              (assoc acc k v)))
-          {}
-          m))
-
-
-(defn- globals [m pred]
-  (reduce (fn [acc [k v]]
-            (if (pred k)
-              (assoc acc k v)
-              (dissoc acc v)))
-          {}
-          m))
-
-
-(defn- global-mq [m]
-  (int-vals->px-vals (globals m map?)))
-
-
-(defn- global-modes [m]
-  (int-vals->px-vals (globals m #(or (string? %) (psuedo-class-key? %)))))
-
-
 (defn- valid-keys [m]
   (reduce (fn [acc [k v]]
-            (if (or (keyword? k) (map? k) (string? k))
+            (if (or (keyword? k) (map? k) (string? k) (= 'manual k))
               (assoc acc k v)
               acc))
           {}
@@ -274,14 +247,11 @@
 
 (defn- s+->stylefy [style]
   (let [valid-keys (valid-keys style)
-        global-modes (global-modes valid-keys)
-        global-mq (global-mq valid-keys)
-        globals-removed (remove-globals valid-keys)
-        reduced (styles-reduced globals-removed)
+        reduced (styles-reduced valid-keys)
         extracted (extract-modes reduced)
         no-empties (remove-empties extracted)
-        modes (modes->map no-empties global-modes)
-        medias (media->map modes global-mq)
+        modes (modes->map no-empties)
+        medias (media->map modes)
         keyss (stylefy-keys medias)
         styles (remove-nil-and-empty keyss)]
     styles))
@@ -333,32 +303,82 @@
      (str namespace* fn-name el-ident-str line-number))))
 
 
+(defn converted-css-val [v k]
+  (let [resolved-css-prop (shorthand/key-sh k)
+        resolved-css-val (shorthand/val-sh v k)]
+    (cond
+      (vector? v)
+      (vector->string v false)
+
+      (number? v)
+      (if-not (contains? int-vals resolved-css-prop) (str v "px") v)
+
+      :else resolved-css-val)))
+
+
+(defn hydrate-shorthand
+  ([m]
+   (hydrate-shorthand m nil))
+  ([m key*]
+   (reduce
+    (fn [acc [k v]]
+      (cond
+        (= 'manual k)
+        (assoc acc k v)
+
+        (mq-key? k)
+        (assoc acc (convert-mq-vals k) (converted-css-val v key*))
+
+        (or (= k :=) (string? k))
+        (assoc acc k (converted-css-val v key*))
+
+        :else
+        (let [resolved-css-prop (shorthand/key-sh k)]
+          (assoc acc resolved-css-prop (if (map? v)
+                                         (hydrate-shorthand v resolved-css-prop)
+                                         (converted-css-val v k))))))
+    {}
+    m)))
+
+
 (defn data-ns-map [style]
   (when-let [m (meta style)]
     (when-let [[k v] (first m)]
       {:data-ns (if (true? v)
                   (ns+ k)
                   (ns+ k v))})))
-#_(defn s+*
-  ([x]
-   (if (map? x)
-     (s+ nil x nil)
-     (when (vector? x) )))
-  ([x y]
-   (when (= attr {:data-stylitics :showcase-nav})
-     (s+->stylefy style))
-   (use-style
-    (s+->stylefy style)
-    (merge (data-ns-map style) attr)))
-  ([x y z]))
+
+(defn atomic [& ks]
+  (reduce (fn [acc k] (merge  acc (k atomic-map))) {} ks))
+
+
+(defn preserve-default [v1 v2]
+  (cond
+    (and (map? v2) (not (map? v1)))
+    (merge {:= v1} v2)
+
+    (and (map? v2) (map? v1))
+    (merge v1 v2)
+    :else v2))
+
+
+(defn merge-styles [& args]
+  (apply merge-with
+         preserve-default
+          (map #(if (vector? %) (apply atomic %) (when (map? %) (hydrate-shorthand %))) args)))
+
 
 (defn s+
   ([style]
    (s+ style nil))
   ([style attr]
    (use-style
-    (s+->stylefy style)
+    (s+->stylefy
+     (if (vector? style)
+       (apply merge-styles style)
+       style))
     (merge (data-ns-map style) attr))))
+
 
 (defn !imp
   "Appends \"!important\" to a css style value.
@@ -371,10 +391,6 @@
 (defn cssfn [k & args]
   (str (name k) "(" (string/join ", " (map #(if (keyword? %) (name %) (str %)) args)) ")"))
 
-
-(defn atomic [& ks]
-  (reduce (fn [acc k] (merge (k atomic-map) acc)) {} ks))
-
 (defn- v->str [v]
   (cond
     (or (symbol? v) (string? v) (keyword? v))
@@ -383,7 +399,6 @@
     (str v "px")
     :else (when (vector? v)
             (string/join " " (map v->str v)))))
-
 
 (defn linear-gradient
   "Can be used with :background or :background-image css prop.

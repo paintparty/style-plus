@@ -15,12 +15,28 @@
    :bl {:name :border-left}
    :bt {:name :border-top}
    :bb {:name :border-bottom}
+   :bs {:name :border-style
+        :vals {:n :none
+               :h :hidden
+               :d :dotted
+               :s :solid
+               :g :groove
+               :r :ridge
+               :i :inset
+               :o :outset}}
+   :bw {:name :border-width}
+   :bc {:name :border-color}
 
    :bgi {:name :background-image}
    :bg {:name :background}
    :bgs {:name :background-size}
    :bgc {:name :background-color}
-   :bgp {:name :background-position}
+   :bgp {:name :background-position
+         :vals {:t :top
+                :b :bottom
+                :l :left
+                :r :right
+                :c :center}}
    :bgr {:name :background-repeat
          :vals {:nr :no-repeat
                 :rx :repeat-x
@@ -28,38 +44,7 @@
                 :r :round
                 :s :space}}
 
-   :c {:name :color
-       :vals {:t :transparent
-              :b :blue
-              :c :cyan
-              :p :pink
-              :m :magenta
-              :v :violet
-              :l :lime
-              :g :green
-              :i :indigo
-              :k :khaki
-              :n :navy
-              :y :yellow
-              :o :orange
-              :r :red
-              :s :silver
-              :u :unset
-              :w :white
-              :ws :whitesmoke}}
-
-   :d {:name :display
-       :vals {:f :flex
-              :b :block
-              :t :table
-              :g :grid
-              :li :list-item
-              :n :none
-              :i :inline
-              :ib :inline-block
-              :it :inline-table
-              :if :inline-flex
-              :ig :inline-grid}}
+   :c {:name :color}
 
    :f {:name :flex}
    :fb {:name :flex-basis}
@@ -149,7 +134,8 @@
    :tt {:name :text-transform
         :vals {:u :uppercase
                :l :lowercase
-               :c :captitalize}}
+               :c :captitalize
+               :fw :full-width}}
    :td {:name :text-decoration
         :vals {:u :underline
                :o :overline
@@ -183,32 +169,6 @@
 
    :z {:name :z-index}})
 
-(def scales
-  [{:key :o :range [0 100 5] :unit :%}
-   {:key :w
-    :range [0 100 5] :unit :%}
-   {:key :h
-    :range [0 100 5] :unit :%}
-   {:key :hover-dim:hover
-    :range [0 100 5] :unit :%}
-   {:key :ex
-    :range [0 0.2 0.01] :unit :ex}
-   {:key :font-weight
-    :range [100 900 100]}
-   {:key :blur
-    :range [0 5 1] :unit :px}
-   {:key :border-radius
-    :range [0 20 1] :unit :px}
-   {:key :font-size
-    :range [0 48 1] :unit :px}
-   {:key :top
-    :range [0 100 25] :unit :%}
-   {:key :left
-    :range [0 100 25] :unit :%}
-   {:key :bottom :range [0 100 25] :unit :%}
-   {:key :right :range [0 100 25] :unit :%}
-   {:key :lh :range [0 48 1] :unit :px}
-   {:key :lh :range [0 4 0.1] :unit :rem}])
 
 (def css-sh-by-propname
   (reduce (fn [acc [_ v]] (assoc acc (:name v) (:vals v))) {} css-sh))
